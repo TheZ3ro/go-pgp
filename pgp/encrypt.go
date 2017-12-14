@@ -1,14 +1,14 @@
 package pgp
 
 import (
-	"golang.org/x/crypto/openpgp"
 	"bytes"
-	"fmt"
-	"io"
-	"golang.org/x/crypto/openpgp/armor"
-	"compress/gzip"
 	_ "crypto/sha256"
+	"fmt"
+	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/armor"
+	"golang.org/x/crypto/openpgp/packet"
 	_ "golang.org/x/crypto/ripemd160"
+	"io"
 )
 
 func Encrypt(entity *openpgp.Entity, message []byte) ([]byte, error) {
@@ -16,34 +16,34 @@ func Encrypt(entity *openpgp.Entity, message []byte) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// Create encoder
-	encoderWriter, err := armor.Encode(buf, "Message", make(map[string]string))
+	encoderWriter, err := armor.Encode(buf, "PGP MESSAGE", nil)
 	if err != nil {
 		return []byte{}, fmt.Errorf("Error creating OpenPGP armor: %v", err)
 	}
 
-	// Create encryptor with encoder
-	encryptorWriter, err := openpgp.Encrypt(encoderWriter, []*openpgp.Entity{entity}, nil, nil, nil)
+	// Create compressor with encoder
+	compressorWriter, err := packet.SerializeCompressed(encoderWriter, packet.CompressionZIP, nil)
+	if err != nil {
+		return []byte{}, fmt.Errorf("Error creating ZIP compressor: %v", err)
+	}
+
+	// Create encryptor with compressor
+	encryptorWriter, err := openpgp.Encrypt(compressorWriter, []*openpgp.Entity{entity}, nil, nil, nil)
 	if err != nil {
 		return []byte{}, fmt.Errorf("Error creating entity for encryption: %v", err)
 	}
 
-	// Create compressor with encryptor
-	compressorWriter, err := gzip.NewWriterLevel(encryptorWriter, gzip.BestCompression)
-	if err != nil {
-		return []byte{}, fmt.Errorf("Invalid compression level: %v", err)
-	}
-
-	// Write message to compressor
+	// Write message to encryptor
 	messageReader := bytes.NewReader(message)
-	_, err = io.Copy(compressorWriter, messageReader)
+	_, err = io.Copy(encryptorWriter, messageReader)
 	if err != nil {
-		return []byte{}, fmt.Errorf("Error writing data to compressor: %v", err)
+		return []byte{}, fmt.Errorf("Error writing data to encryptor: %v", err)
 	}
 
-	compressorWriter.Close()
 	encryptorWriter.Close()
-	encoderWriter.Close()
+	compressorWriter.Close()
+	// No need to close the encoder here
 
-	// Return buffer output - an encoded, encrypted, and compressed message
+	// Return buffer output - an encoded, compressed and encrypted message
 	return buf.Bytes(), nil
 }

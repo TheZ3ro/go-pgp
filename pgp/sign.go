@@ -1,8 +1,8 @@
 package pgp
 
 import (
-	"golang.org/x/crypto/openpgp"
 	"bytes"
+	"golang.org/x/crypto/openpgp"
 )
 
 func Sign(entity *openpgp.Entity, message []byte) ([]byte, error) {

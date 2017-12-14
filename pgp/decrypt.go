@@ -1,15 +1,15 @@
 package pgp
 
 import (
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
-	_ "crypto/sha256"
-	_ "golang.org/x/crypto/ripemd160"
 	"bytes"
+	_ "crypto/sha256"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/armor"
+	"golang.org/x/crypto/openpgp/packet"
+	_ "golang.org/x/crypto/ripemd160"
 	"io/ioutil"
-	"compress/gzip"
 )
 
 func Decrypt(entity *openpgp.Entity, encrypted []byte) ([]byte, error) {
@@ -18,13 +18,23 @@ func Decrypt(entity *openpgp.Entity, encrypted []byte) ([]byte, error) {
 	if err != nil {
 		return []byte{}, fmt.Errorf("Error decoding: %v", err)
 	}
-	if block.Type != "Message" {
+	if block.Type != "PGP MESSAGE" {
 		return []byte{}, errors.New("Invalid message type")
+	}
+
+	// Uncompress message
+	compressed, err := packet.Read(block.Body)
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to read Compressed: %v", err)
+	}
+	c, ok := compressed.(*packet.Compressed)
+	if !ok {
+		return []byte{}, fmt.Errorf("didn't find Compressed packet")
 	}
 
 	// Decrypt message
 	entityList := openpgp.EntityList{entity}
-	messageReader, err := openpgp.ReadMessage(block.Body, entityList, nil, nil)
+	messageReader, err := openpgp.ReadMessage(c.Body, entityList, nil, nil)
 	if err != nil {
 		return []byte{}, fmt.Errorf("Error reading message: %v", err)
 	}
@@ -32,19 +42,7 @@ func Decrypt(entity *openpgp.Entity, encrypted []byte) ([]byte, error) {
 	if err != nil {
 		return []byte{}, fmt.Errorf("Error reading unverified body: %v", err)
 	}
-
-	// Uncompress message
-	reader := bytes.NewReader(read)
-	uncompressed, err := gzip.NewReader(reader)
-	if err != nil {
-		return []byte{}, fmt.Errorf("Error initializing gzip reader: %v", err)
-	}
-	defer uncompressed.Close()
-
-	out, err := ioutil.ReadAll(uncompressed)
-	if err != nil {
-		return []byte{}, err
-	}
+	out := read
 
 	// Return output - an unencoded, unencrypted, and uncompressed message
 	return out, nil

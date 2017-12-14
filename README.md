@@ -1,6 +1,6 @@
 # Go PGP
 
-Layer on top of `golang.org/x/crypto/openpgp` to handle a few PGP use cases.
+Layer on top of `golang.org/x/crypto/openpgp` to handle a few OpenPGP-standard use cases, like asimmetrically encrypt a message with a PublicKey
 
 ## Examples
 

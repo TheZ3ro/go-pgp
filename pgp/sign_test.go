@@ -2,8 +2,8 @@ package pgp_test
 
 import (
 	"fmt"
-	"testing"
 	"github.com/jchavannes/go-pgp/pgp"
+	"testing"
 )
 
 func TestSignature(t *testing.T) {

@@ -1,11 +1,11 @@
 package pgp
 
 import (
-	"golang.org/x/crypto/openpgp/packet"
 	"bytes"
 	"errors"
-	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/armor"
+	"golang.org/x/crypto/openpgp/packet"
 )
 
 func getPublicKeyPacket(publicKey []byte) (*packet.PublicKey, error) {
