@@ -2,6 +2,7 @@ package pgp
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
@@ -79,4 +80,11 @@ func GetKeyByEmail(keyring openpgp.EntityList, email string) *openpgp.Entity {
 	}
 
 	return nil
+}
+
+func GetFingerprint(entity *openpgp.Entity) string {
+	fingerprint := entity.PrimaryKey.Fingerprint[:]
+	dst := make([]byte, hex.EncodedLen(len(fingerprint)))
+	hex.Encode(dst, fingerprint)
+	return string(dst)
 }
